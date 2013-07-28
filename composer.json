@@ -1,0 +1,30 @@
+{
+    "name": "giggsey/libphonenumber-geocoder",
+    "description": "An unofficial port of Google's libphonenumber geocoder",
+    "type": "library",
+    "keywords": ["phonenumber", "libphonenumber", "geocoding"],
+    "homepage": "https://github.com/giggsey/libphonenumber-geocoder",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Joshua Gigg",
+            "email": "giggsey@gmail.com"
+        }
+    ],
+    "require": {
+        "giggsey/libphonenumber-for-php": "~5.7",
+        "ext-intl": "*"
+    },
+
+    "autoload": {
+        "psr-0": {
+            "libphonenumber\\geocoding\\": "src/"
+        }
+    },
+    "archive": {
+        "exclude": ["tests/", "build/", "/.travis.yml", "/updateMetadata.sh"]
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~3.7"
+    }
+}
