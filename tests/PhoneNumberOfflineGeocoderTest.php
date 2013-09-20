@@ -2,6 +2,7 @@
 
 namespace libphonenumber\geocoding\Tests;
 
+use libphonenumber\geocoding\Locale;
 use libphonenumber\geocoding\PhoneNumberOfflineGeocoder;
 use libphonenumber\PhoneNumber;
 
@@ -22,6 +23,7 @@ class PhoneNumberOfflineGeocoderTest extends \PHPUnit_Framework_TestCase
     private static $US_InvalidNumber;
     private static $BS_Number1;
     private static $AU_Number;
+    private static $AR_MobileNumber;
     private static $numberWithInvalidCountryCode;
     private static $internationalTollFree;
     /**
@@ -63,6 +65,9 @@ class PhoneNumberOfflineGeocoderTest extends \PHPUnit_Framework_TestCase
 
         self::$AU_Number = new PhoneNumber();
         self::$AU_Number->setCountryCode(61)->setNationalNumber(236618300);
+
+        self::$AR_MobileNumber = new PhoneNumber();
+        self::$AR_MobileNumber->setCountryCode(54)->setNationalNumber(92214000000);
 
         self::$numberWithInvalidCountryCode = new PhoneNumber();
         self::$numberWithInvalidCountryCode->setCountryCode(999)->setNationalNumber(2423651234);
@@ -122,6 +127,11 @@ class PhoneNumberOfflineGeocoderTest extends \PHPUnit_Framework_TestCase
             pack('H*', 'ec9db8') . pack('H*', 'ecb29c'),
             $this->geocoder->getDescriptionForNumber(self::$KO_Number2, "ko")
         );
+    }
+
+    public function testGetDescriptionForArgentinianMobileNumber()
+    {
+        $this->assertEquals("La Plata", $this->geocoder->getDescriptionForNumber(self::$AR_MobileNumber, "en"));
     }
 
     public function testGetDescriptionForFallBack()

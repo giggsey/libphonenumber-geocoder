@@ -10,7 +10,6 @@ use libphonenumber\PhoneNumberUtil;
 class PhoneNumberOfflineGeocoder
 {
     const MAPPING_DATA_DIRECTORY = '/data';
-
     /**
      * @var PhoneNumberOfflineGeocoder
      */
@@ -20,30 +19,15 @@ class PhoneNumberOfflineGeocoder
      */
     private $phoneUtil;
     /**
-     * @var MappingFileProvider
+     * @var PrefixFileReader
      */
-    private $mappingFileProvider;
-
-    private $availablePhonePrefixMaps = array();
+    private $prefixFileReader = null;
 
     private function __construct($phonePrefixDataDirectory)
     {
         $this->phoneUtil = PhoneNumberUtil::getInstance();
 
-        $this->phonePrefixDataDirectory = dirname(__FILE__) . $phonePrefixDataDirectory;
-        $this->loadMappingFileProvider();
-    }
-
-    private function loadMappingFileProvider()
-    {
-        $mapPath = $this->phonePrefixDataDirectory . DIRECTORY_SEPARATOR . "Map.php";
-        if (!file_exists($mapPath)) {
-            throw new \InvalidArgumentException("Invalid data directory");
-        }
-
-        $map = require $mapPath;
-
-        $this->mappingFileProvider = new MappingFileProvider($map);
+        $this->prefixFileReader = new PrefixFileReader(dirname(__FILE__) . $phonePrefixDataDirectory);
     }
 
     /**
@@ -77,7 +61,7 @@ class PhoneNumberOfflineGeocoder
      * @see getDescriptionForValidNumber
      * @param PhoneNumber $number a valid phone number for which we want to get a text description
      * @param string $locale the language code for which the description should be written
-     * @param string $userRegion  the region code for a given user. This region will be omitted from the
+     * @param string $userRegion the region code for a given user. This region will be omitted from the
      *     description if the phone number comes from this region. It is a two-letter uppercase ISO
      *     country code as defined by ISO 3166-1.
      * @return string a text description for the given language code for the given phone number, or empty
@@ -164,7 +148,7 @@ class PhoneNumberOfflineGeocoder
      *
      * @param PhoneNumber $number a valid phone number for which we want to get a text description
      * @param string $locale the language code for which the description should be written
-     * @param string $userRegion  the region code for a given user. This region will be omitted from the
+     * @param string $userRegion the region code for a given user. This region will be omitted from the
      *     description if the phone number comes from this region. It is a two-letter uppercase ISO
      *     country code as defined by ISO 3166-1.
      * @return string a text description for the given language code for the given phone number
@@ -180,7 +164,22 @@ class PhoneNumberOfflineGeocoder
             $scriptStr = "";
             $regionStr = Locale::getRegion($locale);
 
-            $areaDescription = $this->getAreaDescriptionForNumber($number, $languageStr, $scriptStr, $regionStr);
+            $mobileToken = $this->phoneUtil->getCountryMobileToken($number->getCountryCode());
+            $nationalNumber = $this->phoneUtil->getNationalSignificantNumber($number);
+            if ($mobileToken !== "" && (!strncmp($nationalNumber, $mobileToken, strlen($mobileToken)))) {
+                // In some countries, eg. Argentina, mobile numbers have a mobile token before the national
+                // destination code, this should be removed before geocoding.
+                $nationalNumber = substr($nationalNumber, strlen($mobileToken));
+                $copiedNumber = new PhoneNumber();
+                $copiedNumber->setCountryCode($number->getCountryCode());
+                $copiedNumber->setNationalNumber($nationalNumber);
+                if (substr($nationalNumber, 0, 1) == "0") {
+                    $copiedNumber->setItalianLeadingZero(true);
+                }
+                $areaDescription = $this->prefixFileReader->getDescriptionForNumber($copiedNumber, $languageStr, $scriptStr, $regionStr);
+            } else {
+                $areaDescription = $this->prefixFileReader->getDescriptionForNumber($number, $languageStr, $scriptStr, $regionStr);
+            }
 
             return (strlen($areaDescription) > 0) ? $areaDescription : $this->getCountryNameForNumber($number, $locale);
         }
@@ -188,73 +187,5 @@ class PhoneNumberOfflineGeocoder
         return $this->getRegionDisplayName($regionCode, $locale);
         // TODO: Concatenate the lower-level and country-name information in an appropriate
         // way for each language.
-
-    }
-
-    /**
-     * Returns an area-level text description in the given language for the given phone number.
-     *
-     * @param PhoneNumber $number the phone number for which we want to get a text description
-     * @param $language two-letter lowercase ISO language codes as defined by ISO 639-1
-     * @param $script four-letter titlecase (the first letter is uppercase and the rest of the letters
-     *     are lowercase) ISO script codes as defined in ISO 15924
-     * @param $region two-letter uppercase ISO country codes as defined by ISO 3166-1
-     * @return an area-level text description in the given language for the given phone number, or an
-     *     empty string if such a description is not available
-     */
-    private function getAreaDescriptionForNumber(PhoneNumber $number, $language, $script, $region)
-    {
-        $countryCallingCode = $number->getCountryCode();
-        // As the NANPA data is split into multiple files covering 3-digit areas, use a phone number
-        // prefix of 4 digits for NANPA instead, e.g. 1650.
-        $phonePrefix = ($countryCallingCode !== 1) ? $countryCallingCode : (1000 + intval($number->getNationalNumber() / 10000000));
-
-        $phonePrefixDescriptions = $this->getPhonePrefixDescriptions($phonePrefix, $language, $script, $region);
-
-        $description = ($phonePrefixDescriptions !== null) ? $phonePrefixDescriptions->lookup($number) : null;
-        // When a location is not available in the requested language, fall back to English.
-        if (($description === null || strlen($description) === 0) && $this->mayFallBackToEnglish($language)) {
-            $defaultMap = $this->getPhonePrefixDescriptions($phonePrefix, "en", "", "");
-            if ($defaultMap === null) {
-                return "";
-            }
-            $description = $defaultMap->lookup($number);
-        }
-
-        return ($description !== null) ? $description : "";
-    }
-
-    private function mayFallBackToEnglish($language)
-    {
-        // Don't fall back to English if the requested language is among the following:
-        // - Chinese
-        // - Japanese
-        // - Korean
-        return ($language != 'zh' && $language != 'ja' && $language != 'ko');
-    }
-
-    private function getPhonePrefixDescriptions($prefixMapKey, $language, $script, $region)
-    {
-        $fileName = $this->mappingFileProvider->getFileName($prefixMapKey, $language, $script, $region);
-        if (strlen($fileName) == 0)
-            return null;
-
-        if (!in_array($fileName, $this->availablePhonePrefixMaps)) {
-            $this->loadAreaCodeMapFromFile($fileName);
-        }
-
-        return $this->availablePhonePrefixMaps[$fileName];
-    }
-
-    private function loadAreaCodeMapFromFile($fileName) {
-        $path = $this->phonePrefixDataDirectory . DIRECTORY_SEPARATOR . $fileName;
-        if (!file_exists($path)) {
-            throw new \InvalidArgumentException("Data does not exist");
-        }
-
-        $map = require $path;
-        $areaCodeMap = new AreaCodeMap($map);
-
-        $this->availablePhonePrefixMaps[$fileName] = $areaCodeMap;
     }
 }
