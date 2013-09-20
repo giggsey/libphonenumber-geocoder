@@ -6,7 +6,22 @@
 ## What is it?
 A PHP library for providing geographical information for a phone number. This library is based on Google's [libphonenumber](https://code.google.com/p/libphonenumber/) and requires [libphonenumber-for-php](https://github.com/giggsey/libphonenumber-for-php) to work.
 
-This library requires the PECL intl extension to be installed.
+This library requires the PECL [intl](http://php.net/intl) extension to be installed.
+
+## Installation
+
+The library can be installed via [composer](http://getcomposer.org/). You can also use any other [PSR-0](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md) compliant autoloader.
+
+```json
+{
+    "require": {
+        "giggsey/libphonenumber-geocoder": "~5.8"
+    }
+}
+```
+## Online Demo
+An [online demo](http://giggsey.com/libphonenumber/) is available for both [libphonenumber-for-php](https://github.com/giggsey/libphonenumber-for-php) and [libphonenumber-geocoder](https://github.com/giggsey/libphonenumber-geocoder).
+
 
 ## Examples
 
