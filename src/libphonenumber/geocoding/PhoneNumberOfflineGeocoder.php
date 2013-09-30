@@ -6,6 +6,7 @@ namespace libphonenumber\geocoding;
 use libphonenumber\PhoneNumber;
 use libphonenumber\PhoneNumberType;
 use libphonenumber\PhoneNumberUtil;
+use libphonenumber\prefixmapper\PrefixFileReader;
 
 class PhoneNumberOfflineGeocoder
 {
