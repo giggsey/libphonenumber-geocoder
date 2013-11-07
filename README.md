@@ -3,6 +3,9 @@
 [![Total Downloads](https://poser.pugx.org/giggsey/libphonenumber-geocoder/downloads.png)](https://packagist.org/packages/giggsey/libphonenumber-geocoder)
 [![Latest Stable Version](https://poser.pugx.org/giggsey/libphonenumber-geocoder/v/stable.png)](https://packagist.org/packages/giggsey/libphonenumber-geocoder)
 
+
+# This Project has been merged into (https://github.com/giggsey/libphonenumber-for-php)[giggsey/libphonenumber-for-php]. Please use that for all further updates
+
 ## What is it?
 A PHP library for providing geographical information for a phone number. This library is based on Google's [libphonenumber](https://code.google.com/p/libphonenumber/) and requires [libphonenumber-for-php](https://github.com/giggsey/libphonenumber-for-php) to work.
 
